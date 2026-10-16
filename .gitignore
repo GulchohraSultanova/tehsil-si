@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Gizli məlumatlar — heç vaxt commit etməyin
+*.env
+.env*
+*key*.txt
+*açar*.txt
+gemini*.txt
+
+# macOS
+.DS_Store

@@ -1,11 +1,13 @@
 """
 Təhlil Sİ — server (si.fazgi.com).
 
-Statik səhifəni verir və brauzerdən gələn sorğunu Claude API-yə ötürür.
+Statik səhifəni verir və brauzerdən gələn sorğunu modelə ötürür:
+GEMINI_API_KEY varsa Google Gemini (pulsuz plan), yoxdursa Claude API.
 Kalkulyator aləti brauzerdə işləyir; server yalnız modelə müraciət edir.
 
 İşə salma:
-    ANTHROPIC_API_KEY=... python3 app.py      (default port 5097)
+    GEMINI_API_KEY=... python3 app.py         (default port 5097)
+    ANTHROPIC_API_KEY=... python3 app.py
 """
 
 import json
@@ -17,6 +19,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 import anthropic
+
+import gemini
 
 HOST = os.environ.get("HOST", "127.0.0.1")
 PORT = int(os.environ.get("PORT", "5097"))
@@ -33,7 +37,13 @@ FILES = {
     "/claude-shim.js": ("claude-shim.js", "text/javascript; charset=utf-8"),
 }
 
-client = anthropic.Anthropic(max_retries=2) if os.environ.get("ANTHROPIC_API_KEY") else None
+# Workspace-ə bağlı olmayan açar üçün ANTHROPIC_WORKSPACE_ID (wrkspc_...) verilməlidir
+WORKSPACE = os.environ.get("ANTHROPIC_WORKSPACE_ID", "").strip()
+client = anthropic.Anthropic(
+    max_retries=2,
+    default_headers={"anthropic-workspace-id": WORKSPACE} if WORKSPACE else None,
+) if os.environ.get("ANTHROPIC_API_KEY") and not gemini.KEY else None
+GEMINI_MODELS = gemini.pick_models() if gemini.KEY else None
 
 _hits = defaultdict(deque)
 _hits_lock = threading.Lock()
@@ -86,7 +96,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         path = self.path.split("?", 1)[0]
         if path == "/api/status":
-            return self.send_json(200, {"ready": client is not None})
+            return self.send_json(200, {"ready": client is not None or GEMINI_MODELS is not None})
         if path not in FILES:
             return self.send_json(404, {"code": "not_found"})
         name, ctype = FILES[path]
@@ -101,7 +111,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path != "/api/sample":
             return self.send_json(404, {"code": "not_found"})
-        if client is None:
+        if client is None and GEMINI_MODELS is None:
             return self.send_json(503, {"code": "sampling_disabled"})
         length = int(self.headers.get("Content-Length") or 0)
         if length <= 0 or length > MAX_BODY:
@@ -137,6 +147,9 @@ class Handler(BaseHTTPRequestHandler):
         if tools:
             params["tools"] = tools
         try:
+            if GEMINI_MODELS:
+                emit("done", gemini.stream(GEMINI_MODELS, messages, tools, emit))
+                return
             with client.beta.messages.stream(**params) as stream:
                 for event in stream:
                     if event.type == "content_block_delta" and event.delta.type == "text_delta":
@@ -147,9 +160,9 @@ class Handler(BaseHTTPRequestHandler):
         except (BrokenPipeError, ConnectionResetError):
             pass  # istifadəçi «Dayandır» basdı
         except Exception as e:
-            print("API xətası:", repr(e), flush=True)
+            print("API xətası:", repr(e)[:800], flush=True)
             try:
-                emit("error", {"code": error_code(e)})
+                emit("error", {"code": e.code if isinstance(e, gemini.GeminiError) else error_code(e)})
             except (BrokenPipeError, ConnectionResetError):
                 pass
 
@@ -157,5 +170,6 @@ class Handler(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     srv = ThreadingHTTPServer((HOST, PORT), Handler)
     srv.daemon_threads = True
-    print(f"Təhlil Sİ: http://{HOST}:{PORT}  (API açarı: {'var' if client else 'YOXDUR'})", flush=True)
+    provider = f"Gemini ({', '.join(GEMINI_MODELS)})" if GEMINI_MODELS else "Claude" if client else "YOXDUR"
+    print(f"Təhlil Sİ: http://{HOST}:{PORT}  (model: {provider})", flush=True)
     srv.serve_forever()
