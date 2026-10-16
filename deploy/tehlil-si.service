@@ -1,0 +1,18 @@
+[Unit]
+Description=Tehlil SI (si.fazgi.com)
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/tehlil-si
+EnvironmentFile=-/etc/tehlil-si.env
+Environment=HOST=127.0.0.1 PORT=5097 PYTHONUNBUFFERED=1
+ExecStart=/opt/tehlil-si/venv/bin/python /opt/tehlil-si/app.py
+Restart=always
+RestartSec=3
+DynamicUser=yes
+ProtectSystem=strict
+ProtectHome=yes
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target
