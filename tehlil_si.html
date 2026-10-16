@@ -1,0 +1,751 @@
+<title>Təhlil Sİ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+<style>
+/* Layout: iş masası — solda tapşırıq və cavab, sağda Sİ-nin bilik bazası (dar ekranda alt-alta) */
+:root {
+  --bg: #f3f4f1;
+  --panel: #ffffff;
+  --ink: #18201d;
+  --muted: #5b6662;
+  --line: #d9ddd7;
+  --accent: #19664f;
+  --accent-ink: #ffffff;
+  --accent-soft: #e2efe9;
+  --amber: #a85d00;
+  --amber-soft: #fbefdc;
+  --danger: #a3302a;
+  --code-bg: #eef0ec;
+  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121715; --panel: #1a211e; --ink: #e5ebe7; --muted: #9aa7a1; --line: #2e3833;
+    --accent: #4fbf98; --accent-ink: #0d1411; --accent-soft: #1d3329;
+    --amber: #f0a64a; --amber-soft: #3a2c17; --danger: #f08a80; --code-bg: #222b27;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121715; --panel: #1a211e; --ink: #e5ebe7; --muted: #9aa7a1; --line: #2e3833;
+  --accent: #4fbf98; --accent-ink: #0d1411; --accent-soft: #1d3329;
+  --amber: #f0a64a; --amber-soft: #3a2c17; --danger: #f08a80; --code-bg: #222b27;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.55;
+  padding-inline: 16px; padding-block: 24px 48px;
+}
+.wrap { max-width: 1200px; margin: 0 auto; display: grid; gap: 24px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: 2rem; letter-spacing: -0.01em; margin: 0; }
+h1 span { color: var(--accent); }
+.lede { color: var(--muted); margin: 0; max-width: 62ch; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 24px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; min-width: 0; }
+.stack { display: grid; gap: 14px; min-width: 0; }
+h2 { font-family: var(--font-display); font-weight: 600; font-size: 1.15rem; margin: 0; }
+.label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-right: 1px solid var(--line); background: transparent; color: var(--ink); padding: 7px 12px; font: inherit; font-size: 0.88rem; cursor: pointer; }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+
+textarea, select, input[type="text"] {
+  width: 100%; font: inherit; color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px;
+}
+#task { font-family: var(--font-mono); font-size: 0.84rem; line-height: 1.5; min-height: 300px; resize: vertical; }
+textarea:focus-visible, select:focus-visible, input:focus-visible, button:focus-visible, a:focus-visible, label.file:focus-within {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+
+.btn { font: inherit; font-weight: 600; border-radius: 8px; padding: 10px 18px; cursor: pointer; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); font-weight: 500; }
+.btn.small { padding: 6px 12px; font-size: 0.85rem; }
+.link { background: none; border: 0; padding: 0; font: inherit; color: var(--accent); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+label.file { display: inline-flex; align-items: center; gap: 6px; border: 1px dashed var(--line); border-radius: 8px; padding: 8px 12px; font-size: 0.88rem; cursor: pointer; color: var(--muted); }
+label.file input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.check { display: inline-flex; gap: 6px; align-items: center; font-size: 0.88rem; color: var(--muted); }
+
+.notice { border-radius: 8px; padding: 10px 12px; font-size: 0.88rem; background: var(--amber-soft); color: var(--ink); border-left: 3px solid var(--amber); }
+
+/* Gediş zolağı */
+.steps { display: grid; gap: 4px; font-family: var(--font-mono); font-size: 0.8rem; color: var(--muted); }
+.steps div::before { content: "› "; color: var(--accent); }
+.steps .err { color: var(--danger); }
+
+/* Cavab */
+#out { min-width: 0; }
+.answer { min-width: 0; overflow-wrap: anywhere; }
+.answer h1, .answer h2, .answer h3 { font-family: var(--font-display); text-wrap: balance; margin: 1.3em 0 0.4em; }
+.answer h1 { font-size: 1.4rem; } .answer h2 { font-size: 1.2rem; } .answer h3 { font-size: 1.05rem; }
+.answer > :first-child { margin-top: 0; }
+.answer p, .answer li { max-width: 75ch; }
+.answer strong { font-weight: 600; }
+.answer code { font-family: var(--font-mono); font-size: 0.85em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+.answer pre { background: var(--code-bg); padding: 12px; border-radius: 8px; overflow-x: auto; }
+.answer pre code { background: none; padding: 0; }
+.answer blockquote { margin: 0.8em 0; padding: 8px 14px; border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: 0 8px 8px 0; }
+.tw { overflow-x: auto; margin: 0.8em 0; }
+.answer table { border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 0.9rem; min-width: 100%; }
+.answer th, .answer td { border-bottom: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; }
+.answer th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 600; background: var(--bg); }
+.empty { color: var(--muted); }
+.empty ol { margin: 8px 0 0; padding-left: 1.2em; }
+
+/* Bilik bazası */
+details { border-top: 1px solid var(--line); padding-top: 10px; }
+details:first-of-type { border-top: 0; padding-top: 0; }
+summary { cursor: pointer; font-weight: 600; font-size: 0.92rem; }
+.rules { margin: 8px 0 0; padding-left: 1.1em; font-size: 0.85rem; color: var(--ink); display: grid; gap: 5px; }
+.rules li::marker { color: var(--muted); }
+.taught { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.taught li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: start; background: var(--accent-soft); border-radius: 8px; padding: 8px 10px; font-size: 0.86rem; }
+.taught .tag { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); font-weight: 600; display: block; }
+.taught button { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 1rem; line-height: 1; padding: 2px 4px; }
+.taught button:hover { color: var(--danger); }
+.mini { font-size: 0.8rem; color: var(--muted); margin: 0; }
+#teachText { min-height: 80px; resize: vertical; font-size: 0.88rem; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .pulse { animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: 0.45; } }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Təhlil <span>Sİ</span></h1>
+    <p class="lede">Tapşırığın mətnini və cədvəli yapışdırın. Sİ məlumatları özü oxuyur, hər rəqəmi dəqiq kalkulyatorla hesablayır və Azərbaycan universitetlərinin qiymətləndirmə qaydalarına və yol hərəkəti qaydalarına uyğun cavab verir.</p>
+  </header>
+
+  <div class="grid">
+    <main class="stack">
+      <section class="panel stack" aria-labelledby="taskHead">
+        <div class="row" style="justify-content: space-between;">
+          <h2 id="taskHead">Tapşırıq</h2>
+          <div class="row">
+            <span class="label">Nümunə yüklə</span>
+            <button class="link" type="button" data-example="telebe">Tələbələr</button>
+            <button class="link" type="button" data-example="yol">Yol hərəkəti</button>
+          </div>
+        </div>
+
+        <div class="row">
+          <span class="label">Sahə</span>
+          <div class="seg" role="group" aria-label="Sahə">
+            <button type="button" data-mode="auto" aria-pressed="true">Avtomatik</button>
+            <button type="button" data-mode="telebe" aria-pressed="false">Tələbə nəticələri</button>
+            <button type="button" data-mode="yol" aria-pressed="false">Yol hərəkəti</button>
+          </div>
+        </div>
+
+        <label class="label" for="task">Mətn, cədvəl və ballar</label>
+        <textarea id="task" spellcheck="false"></textarea>
+
+        <div class="row">
+          <label class="file" id="imgWrap" hidden>
+            <input id="img" type="file" multiple>
+            <span id="imgLabel">Tapşırığın şəklini əlavə et</span>
+          </label>
+          <label class="check"><input type="checkbox" id="deep"> Dərin düşünmə (daha yavaş, daha dəqiq)</label>
+        </div>
+
+        <div class="row">
+          <button class="btn" id="run" type="button">Təhlil et</button>
+          <button class="btn ghost" id="stop" type="button" hidden>Dayandır</button>
+          <button class="btn ghost" id="clear" type="button">Mətni təmizlə</button>
+        </div>
+        <div id="unavail" class="notice" hidden>Bu səhifə Sİ-yə yalnız claude.ai-da açıldıqda qoşulur. Linki claude.ai hesabınızla açın.</div>
+      </section>
+
+      <section class="panel stack" aria-labelledby="outHead">
+        <div class="row" style="justify-content: space-between;">
+          <h2 id="outHead">Sİ-nin cavabı</h2>
+          <div class="row">
+            <button class="btn ghost small" id="copy" type="button" hidden>Kopyala</button>
+            <button class="link" id="fix" type="button" hidden>Cavab səhvdir? Düzgün qaydanı öyrət</button>
+          </div>
+        </div>
+        <div class="steps" id="steps" aria-live="polite"></div>
+        <div id="out">
+          <div class="empty">
+            Nümunə tapşırıq artıq yüklənib. <strong>Təhlil et</strong> düyməsini basın. Sİ belə işləyir:
+            <ol>
+              <li>Mətndəki cədvəli və tapşırıqların siyahısını oxuyur.</li>
+              <li>Bütün rəqəmləri kalkulyatorla hesablayır, heç nəyi təxmin etmir.</li>
+              <li>Mətndə meyar verilməyibsə, bilik bazasındakı qaydanı tətbiq edir və hansı qaydanı işlətdiyini yazır.</li>
+              <li>Hər tapşırığa ayrıca cavab verir, sonda qərar çıxarır.</li>
+            </ol>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <aside class="panel stack" aria-labelledby="kbHead">
+      <h2 id="kbHead">Sİ-nin bilikləri</h2>
+      <p class="mini">Mətndə verilmiş düstur və meyarlar həmişə üstündür. Sonra öyrətdiyiniz qaydalar, sonra isə daxili qaydalar gəlir.</p>
+
+      <div class="stack" id="teach">
+        <span class="label">Sİ-yə yeni qayda öyrət</span>
+        <select id="teachArea" aria-label="Qaydanın sahəsi">
+          <option value="telebe">Tələbə nəticələri</option>
+          <option value="yol">Yol hərəkəti</option>
+          <option value="umumi">Ümumi</option>
+        </select>
+        <textarea id="teachText" placeholder="Məsələn: Kreditlər verilibsə, orta bal kreditə görə çəkili hesablansın."></textarea>
+        <div class="row">
+          <button class="btn small" id="teachBtn" type="button">Yadda saxla</button>
+          <span class="mini" id="teachMsg" aria-live="polite"></span>
+        </div>
+      </div>
+
+      <div class="stack">
+        <span class="label">Öyrədilmiş qaydalar</span>
+        <ul class="taught" id="taught"></ul>
+        <p class="mini" id="taughtEmpty">Hələ qayda öyrədilməyib. Yuxarıdakı formada yazın, Sİ növbəti təhlildən etibarən ona əməl edəcək.</p>
+      </div>
+
+      <div class="stack">
+        <span class="label">Daxili qaydalar</span>
+        <div id="builtin" class="stack"></div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ---------- Daxili bilik bazası ----------
+  const BUILTIN = {
+    telebe: {
+      title: "Azərbaycan universitetləri: qiymətləndirmə",
+      rules: [
+        "100 ballıq sistem: semestr ərzində 50 bal (davamiyyət 10, sərbəst iş 10, seminar/laboratoriya/kollokvium 30) və imtahan 50 bal.",
+        "Qiymət şkalası: 91–100 A «əla»; 81–90 B «çox yaxşı»; 71–80 C «yaxşı»; 61–70 D «kafi»; 51–60 E «qənaətbəxş»; 0–50 F «qeyri-kafi».",
+        "F (51-dən aşağı) alınan fənn mənimsənilməmiş sayılır və akademik borc yaranır.",
+        "İmtahan balı ayrıca verilibsə: imtahanda 17-dən az bal toplayan tələbə ümumi balından asılı olmayaraq «qeyri-kafi» alır.",
+        "Dərslərin 25%-dən çoxunu buraxan tələbə imtahana buraxılmır (davamiyyət məlumatı verilibsə).",
+        "Orta bal: kreditlər verilibsə ÜOMG = Σ(bal × kredit) / Σ(kredit); verilməyibsə sadə ədədi orta. 2 onluq rəqəmə qədər yuvarlaqlaşdırılır.",
+        "Əlaçı: bütün fənlərdən 91 və yuxarı (A) bal alan tələbə.",
+        "Zərbəçi: ən azı bir fəndən 91 və yuxarı (A), qalan bütün fənlərdən 71 və yuxarı bal alan, amma əlaçı olmayan tələbə. 71-dən aşağı bircə balı olan və ya heç bir fəndən 91 almayan tələbə zərbəçi deyil.",
+        "«X-dən yuxarı» ciddi böyükdür (> X); «X və yuxarı» isə ≥ X deməkdir.",
+        "Ən çətin fənn: qrup ortası ən aşağı olan fənn. Bərabərlikdə 71-dən aşağı bal alanların sayı çox olan, sonra minimum balı aşağı olan fənn seçilir.",
+        "Fərdi tövsiyə: ən zəif və ən güclü fənni, qrup ortasından fərqi, qiymət hərfini və akademik borc riskini nəzərə al.",
+      ],
+    },
+    yol: {
+      title: "Yol hərəkəti və işıqfor idarəsi",
+      rules: [
+        "«Yol hərəkəti haqqında» Azərbaycan Respublikasının Qanunu: işıqforun yaşıl siqnalı hərəkətə icazə verir, sarı xəbərdarlıq edir, qırmızı hərəkəti qadağan edir.",
+        "Tənzimlənməyən piyada keçidində sürücü keçidə çıxmış piyadaya yol verməlidir; tənzimlənən keçiddə hərəkət işıqfora görədir.",
+        "Yaşayış məntəqələrində maksimum sürət 60 km/saatdır (yol nişanı ilə başqa həd qoyulmayıbsa).",
+        "Təhlükəsizlik sürətdən üstündür: qəza qeydə alınan kəsişmələr tıxacdan asılı olmayaraq prioritetdir.",
+        "Piyadalar üçün yaşıl faza piyadanın yolu 1,0–1,2 m/san sürətlə keçməsinə kifayət etməlidir. Piyada çox olan kəsişmədə avtomobillərə yaşıl müddəti artırmaq piyadaların gözləməsini uzadır.",
+        "İşıqforlu kəsişmədə xidmət səviyyəsi (HCM) orta gözləməyə görə: A ≤ 10 san; B 10–20; C 20–35; D 35–55; E 55–80; F > 80 san (həddən artıq yüklənmə).",
+        "Yaşıl müddətin artırılması ən çox avtomobil sayı × gözləmə (itirilən avtomobil-saat) yüksək və piyada sayı nisbətən az olan kəsişmədə faydalıdır.",
+        "Mətndə risk düsturu verilibsə, əmsallar dəqiq olduğu kimi tətbiq edilir.",
+        "Risk qrupları üçün hədd verilməyibsə: minimum və maksimum risk arasındakı aralıq 3 bərabər hissəyə bölünür (aşağı, orta, yüksək) və hədlər cavabda göstərilir.",
+        "Ssenari müqayisəsində həm mütləq dəyişmə (bal), həm faiz dəyişməsi hesablanır. Hər iki dəyişiklik birlikdə baş verdikdə nəticə də göstərilir.",
+      ],
+    },
+    umumi: {
+      title: "Ümumi iş qaydaları",
+      rules: [
+        "Bütün rəqəmlər kalkulyator alətində hesablanır, təxmini rəqəm yazılmır.",
+        "Mətndə tapşırıqlar nömrələnibsə, cavab da eyni nömrələrlə və eyni sırada verilir.",
+        "Mətndə meyar verilməyibsə, istifadə olunan qayda cavabda açıq yazılır.",
+        "Məlumat çatışmırsa, Sİ bunu deyir və ağlabatan fərziyyəni açıq qeyd edir.",
+      ],
+    },
+  };
+
+  const EXAMPLES = {
+    telebe: `Tələbələrin nəticələrinin süni intellektlə təhlili
+Bir qrupdakı tələbələrin fənlər üzrə nəticələri verilib:
+
+Tələbə   Riyaziyyat  İnformatika  Fizika  İngilis dili
+Aysel    85          92           78      88
+Murad    72          95           81      70
+Nigar    94          87           91      93
+Elvin    65          73           69      76
+Kamran   88          68           84      79
+Leyla    76          90           72      85
+
+Süni intellektə tapşırılır:
+1. Hər tələbənin orta balını hesablasın.
+2. Tələbələri orta bala görə ən yüksəkdən ən aşağıya sıralasın.
+3. Hər fənn üzrə qrupun orta nəticəsini hesablasın.
+4. Hər fənn üzrə ən güclü və ən zəif tələbəni müəyyən etsin.
+5. Orta balı 85-dən yuxarı olan tələbələri müəyyən etsin.
+6. Əlaçı tələbələri təyin etsin.
+7. Zərbəçi tələbələri təyin etsin.
+8. Hansı fənnin qrup üçün daha çətin olduğunu müəyyənləşdirsin.
+9. Nəticələrə əsasən hər tələbəyə fərdi təhsil tövsiyəsi versin.
+10. Sonda bütün nəticələri təhlil edib ümumi nəticə çıxarsın.`,
+    yol: `Məsələ: Ağıllı şəhərdə yol hərəkətinin optimallaşdırılması
+Bir şəhərdə 5 əsas yol kəsişməsi var. Süni intellektə son 1 saat ərzində toplanmış məlumatlar verilir:
+
+Kəsişmə  Avtomobil sayı  Orta gözləmə (san.)  Qəza sayı  Piyadalar
+A        420             75                   2          180
+B        280             42                   0          320
+C        610             110                  3          150
+D        350             58                   1          420
+E        190             35                   0          90
+
+Sİ aşağıdakıları etməlidir:
+1. Hər kəsişmə üçün risk balı hesablasın:
+   Risk = (Avtomobil sayı × 0.3) + (Gözləmə vaxtı × 0.4) + (Qəza sayı × 20) + (Piyada sayı × 0.1)
+2. Kəsişmələri risk səviyyəsinə görə aşağı, orta və yüksək qruplara bölsün.
+3. Ən təhlükəli kəsişməni müəyyən etsin.
+4. Hansı kəsişmədə işıqforun yaşıl müddətinin artırılmasının daha məqsədəuyğun olduğunu müəyyən etsin.
+5. Əgər C kəsişməsində avtomobillərin sayı 20% artsa, yeni risk balını hesablasın.
+6. Əgər C kəsişməsində gözləmə müddəti 30% azaldılsa, riskin nə qədər dəyişəcəyini hesablasın.
+7. İki dəyişiklikdən hansının daha effektiv olduğunu müqayisə etsin.
+8. Mövcud məlumatlara əsasən şəhər rəhbərliyinə 3 konkret tövsiyə versin.
+9. Sonda qərarını səbəbləri ilə əsaslandırsın.`,
+  };
+
+  const AREA_NAMES = { telebe: "Tələbə nəticələri", yol: "Yol hərəkəti", umumi: "Ümumi" };
+  const $ = (id) => document.getElementById(id);
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+  };
+
+  // ---------- Dəqiq kalkulyator (eval istifadə etmir) ----------
+  const FUNCS = {
+    orta: (...a) => a.reduce((s, x) => s + x, 0) / a.length,
+    cem: (...a) => a.reduce((s, x) => s + x, 0),
+    min: (...a) => Math.min(...a),
+    max: (...a) => Math.max(...a),
+    round: (x, n = 2) => { const p = Math.pow(10, n); return Math.round((x + Number.EPSILON) * p) / p; },
+    abs: Math.abs, sqrt: Math.sqrt, pow: Math.pow, floor: Math.floor, ceil: Math.ceil,
+    stdev: (...a) => { const m = a.reduce((s, x) => s + x, 0) / a.length; return Math.sqrt(a.reduce((s, x) => s + (x - m) ** 2, 0) / a.length); },
+    say: (...a) => a.length,
+  };
+  FUNCS.avg = FUNCS.mean = FUNCS.orta; FUNCS.sum = FUNCS.cem; FUNCS.count = FUNCS.say;
+
+  function evaluate(src, vars) {
+    const re = /\s*(\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|[A-Za-z_][A-Za-z0-9_]*|\*\*|[-+*/%^(),×])/y;
+    const toks = [];
+    let m, pos = 0;
+    re.lastIndex = 0;
+    while (pos < src.length) {
+      if (/^\s*$/.test(src.slice(pos))) break;
+      re.lastIndex = pos;
+      m = re.exec(src);
+      if (!m) throw new Error(`Tanınmayan simvol: "${src.slice(pos).trim().slice(0, 12)}"`);
+      toks.push(m[1] === "×" ? "*" : m[1]);
+      pos = re.lastIndex;
+    }
+    let i = 0;
+    const peek = () => toks[i];
+    const eat = (t) => { if (toks[i] !== t) throw new Error(`"${t}" gözlənilirdi`); i++; };
+    function expr() {
+      let v = term();
+      while (peek() === "+" || peek() === "-") { const op = toks[i++]; const r = term(); v = op === "+" ? v + r : v - r; }
+      return v;
+    }
+    function term() {
+      let v = unary();
+      while (peek() === "*" || peek() === "/" || peek() === "%") {
+        const op = toks[i++]; const r = unary();
+        if (op === "/" && r === 0) throw new Error("Sıfıra bölmə");
+        v = op === "*" ? v * r : op === "/" ? v / r : v % r;
+      }
+      return v;
+    }
+    function unary() {
+      if (peek() === "-") { i++; return -unary(); }
+      if (peek() === "+") { i++; return unary(); }
+      return power();
+    }
+    function power() {
+      const b = primary();
+      if (peek() === "^" || peek() === "**") { i++; return Math.pow(b, unary()); }
+      return b;
+    }
+    function primary() {
+      const t = toks[i++];
+      if (t === undefined) throw new Error("İfadə yarımçıqdır");
+      if (t === "(") { const v = expr(); eat(")"); return v; }
+      if (/^\d/.test(t)) return parseFloat(t);
+      if (/^[A-Za-z_]/.test(t)) {
+        if (peek() === "(") {
+          const f = FUNCS[t];
+          if (!f) throw new Error(`Naməlum funksiya: ${t}`);
+          i++;
+          const args = [];
+          if (peek() !== ")") { args.push(expr()); while (peek() === ",") { i++; args.push(expr()); } }
+          eat(")");
+          return f(...args);
+        }
+        if (!(t in vars)) throw new Error(`Naməlum dəyişən: ${t}`);
+        return vars[t];
+      }
+      throw new Error(`Gözlənilməz "${t}"`);
+    }
+    const v = expr();
+    if (i < toks.length) throw new Error(`Artıq simvol: "${toks[i]}"`);
+    if (!Number.isFinite(v)) throw new Error("Nəticə ədəd deyil");
+    return Number(v.toFixed(10));
+  }
+
+  let calcVars = {};
+  let calcCount = 0;
+
+  const TOOLS = [{
+    name: "hesabla",
+    description: "Dəqiq kalkulyator. Bir çağırışda çoxlu hesablama et: hər biri {ad, ifade}. Ad latın hərfləri, rəqəm və _ ilə yazılır (məs. orta_Aysel). İfadədə + - * / ^ ( ), ədədlər, əvvəl hesablanmış adlar və funksiyalar: orta, cem, min, max, round(x,n), abs, sqrt, pow, stdev, say. İstəyə görə 'siralamalar' hesablanmış adları dəyərə görə sıralayır. Qaytarır: hər adın dəqiq dəyəri, sıralamalar və xətalar.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        hesablamalar: {
+          type: "array",
+          items: { type: "object", properties: { ad: { type: "string" }, ifade: { type: "string" } }, required: ["ad", "ifade"] },
+        },
+        siralamalar: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: { basliq: { type: "string" }, adlar: { type: "array", items: { type: "string" } }, azalan: { type: "boolean" } },
+            required: ["adlar"],
+          },
+        },
+      },
+      required: ["hesablamalar"],
+    },
+    execute(input) {
+      const list = Array.isArray(input.hesablamalar) ? input.hesablamalar.slice(0, 400) : [];
+      const netice = {}, xetalar = {};
+      for (const it of list) {
+        const ad = String(it?.ad ?? "").trim();
+        if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(ad)) { xetalar[ad || "?"] = "Ad yalnız latın hərfi, rəqəm və _ ola bilər"; continue; }
+        try { calcVars[ad] = evaluate(String(it.ifade ?? ""), calcVars); netice[ad] = calcVars[ad]; }
+        catch (e) { xetalar[ad] = e.message; }
+      }
+      calcCount += Object.keys(netice).length;
+      const siralamalar = [];
+      for (const s of Array.isArray(input.siralamalar) ? input.siralamalar : []) {
+        const adlar = (Array.isArray(s?.adlar) ? s.adlar : []).map(String).filter((a) => a in calcVars);
+        const desc = s?.azalan !== false;
+        const sorted = adlar.map((a) => ({ ad: a, deyer: calcVars[a] })).sort((x, y) => desc ? y.deyer - x.deyer : x.deyer - y.deyer);
+        siralamalar.push({ basliq: String(s?.basliq ?? ""), azalan: desc, sira: sorted.map((x, k) => ({ yer: k + 1, ...x })) });
+      }
+      step(`Kalkulyator: ${Object.keys(netice).length} hesablama${siralamalar.length ? `, ${siralamalar.length} sıralama` : ""}${Object.keys(xetalar).length ? `, ${Object.keys(xetalar).length} xəta düzəldilir` : ""}`);
+      const out = { netice };
+      if (siralamalar.length) out.siralamalar = siralamalar;
+      if (Object.keys(xetalar).length) out.xetalar = xetalar;
+      return out;
+    },
+  }];
+
+  // ---------- Vəziyyət ----------
+  let mode = "auto";
+  let taught = [];
+  let db = null;
+  let sample = null;
+  let canTools = false;
+  let canImages = false;
+  let ctl = null;
+  let lastAnswer = "";
+  let blocked = false;
+
+  // ---------- Bilik bazasını göstər ----------
+  function renderBuiltin() {
+    const host = $("builtin");
+    host.textContent = "";
+    for (const key of ["telebe", "yol", "umumi"]) {
+      const d = document.createElement("details");
+      if (key === "telebe") d.open = true;
+      const s = document.createElement("summary");
+      s.textContent = BUILTIN[key].title;
+      const ol = document.createElement("ol");
+      ol.className = "rules";
+      for (const r of BUILTIN[key].rules) { const li = document.createElement("li"); li.textContent = r; ol.append(li); }
+      d.append(s, ol);
+      host.append(d);
+    }
+  }
+
+  function renderTaught() {
+    const ul = $("taught");
+    ul.textContent = "";
+    for (const r of taught) {
+      const li = document.createElement("li");
+      const div = document.createElement("div");
+      const tag = document.createElement("span");
+      tag.className = "tag";
+      tag.textContent = AREA_NAMES[r.sahe] || "Ümumi";
+      div.append(tag, document.createTextNode(r.metn));
+      const del = document.createElement("button");
+      del.type = "button";
+      del.setAttribute("aria-label", "Qaydanı sil");
+      del.textContent = "×";
+      del.onclick = () => removeRule(r.id);
+      li.append(div, del);
+      ul.append(li);
+    }
+    $("taughtEmpty").hidden = taught.length > 0;
+  }
+
+  // ---------- Öyrətmə: db, olmadıqda brauzer yaddaşı ----------
+  function loadLocalRules() {
+    try { taught = JSON.parse(store.get("tehlil-si-qaydalar") || "[]"); } catch { taught = []; }
+    renderTaught();
+  }
+  function saveLocalRules() { store.set("tehlil-si-qaydalar", JSON.stringify(taught)); }
+
+  async function addRule() {
+    const metn = $("teachText").value.trim();
+    const sahe = $("teachArea").value;
+    if (!metn) { $("teachMsg").textContent = "Qaydanın mətnini yazın."; return; }
+    $("teachBtn").disabled = true;
+    try {
+      if (db) {
+        await db.collection("qaydalar").add({ metn: metn.slice(0, 2000), sahe, vaxt: Date.now() });
+      } else {
+        taught.push({ id: String(Date.now()), metn, sahe, vaxt: Date.now() });
+        saveLocalRules(); renderTaught();
+      }
+      $("teachText").value = "";
+      $("teachMsg").textContent = "Öyrədildi. Növbəti təhlildə tətbiq olunacaq.";
+    } catch (e) {
+      $("teachMsg").textContent = "Saxlamaq alınmadı: bu səhifədə yazmaq icazəniz yoxdur.";
+    } finally {
+      $("teachBtn").disabled = false;
+    }
+  }
+
+  async function removeRule(id) {
+    try {
+      if (db) await db.collection("qaydalar").doc(id).delete();
+      else { taught = taught.filter((r) => r.id !== id); saveLocalRules(); renderTaught(); }
+    } catch {
+      $("teachMsg").textContent = "Silmək alınmadı: bu səhifədə yazmaq icazəniz yoxdur.";
+    }
+  }
+
+  // ---------- Promptun qurulması ----------
+  function knowledgeText() {
+    const parts = [];
+    const areas = mode === "auto" ? ["telebe", "yol", "umumi"] : [mode, "umumi"];
+    const mine = taught.filter((r) => areas.includes(r.sahe));
+    if (mine.length) {
+      parts.push("İSTİFADƏÇİNİN ÖYRƏTDİYİ QAYDALAR (daxili qaydalarla ziddiyyət olarsa, bunlar üstündür):");
+      mine.forEach((r, k) => parts.push(`${k + 1}. [${AREA_NAMES[r.sahe]}] ${r.metn}`));
+      parts.push("");
+    }
+    for (const a of areas) {
+      parts.push(`DAXİLİ QAYDALAR — ${BUILTIN[a].title}:`);
+      BUILTIN[a].rules.forEach((r, k) => parts.push(`${k + 1}. ${r}`));
+      parts.push("");
+    }
+    return parts.join("\n");
+  }
+
+  function buildPrompt(task, hasImages) {
+    const area = mode === "auto"
+      ? "Sahəni mətnə görə özün müəyyən et (tələbə nəticələri, yol hərəkəti və ya başqa analitik tapşırıq)."
+      : `Sahə: ${AREA_NAMES[mode]}.`;
+    const calc = canTools
+      ? `HESABLAMA QAYDASI (məcburi):
+- Cavabda görünən HƏR ədədi nəticəni (orta bal, cəm, risk, faiz, fərq, hədd və s.) yalnız "hesabla" aləti ilə hesabla. Ağılda hesablama etmə, rəqəm təxmin etmə.
+- Bütün hesablamaları mümkün qədər BİR çağırışda topla (lazım gələrsə ikinci çağırışda əvvəlki adlara istinad et). Sıralama lazımdırsa, eyni çağırışda "siralamalar" sahəsini istifadə et.
+- Faiz dəyişmələrini də ifadə kimi yaz: məs. yeni_avto = 610*1.2, faiz = (yeni-kohne)/kohne*100.
+- Alət xəta qaytarsa, ifadəni düzəldib yenidən çağır.
+- Cavabda yalnız alətin qaytardığı dəqiq dəyərləri yaz (lazım olsa 2 onluq rəqəmə yuvarlaqlaşdır).`
+      : `HESABLAMA QAYDASI: Hər ədədi addım-addım hesabla və aralıq nəticələri göstər; yekunda hesablamaları bir daha yoxla.`;
+    return `Sən "Təhlil Sİ" adlı analitik süni intellektsən. İstifadəçi tapşırığın mətnini (cədvəl, ballar, tapşırıqlar) yapışdırıb. Məlumatlar istənilən formatda ola bilər: boşluqla, tab ilə, vergüllə ayrılmış və ya səliqəsiz. Mətndən məlumatları özün düzgün çıxar.
+${area}
+
+QAYDALARIN PRİORİTETİ:
+1) Mətndə açıq verilmiş düstur, əmsal, meyar və hədd — dəqiq olduğu kimi tətbiq olunur.
+2) İstifadəçinin öyrətdiyi qaydalar.
+3) Daxili qaydalar (Azərbaycan universitetlərinin qiymətləndirmə qaydaları, yol hərəkəti qaydaları).
+Mətndə meyar verilməyibsə, tətbiq etdiyin qaydanı cavabda bir cümlə ilə qeyd et.
+
+${knowledgeText()}
+${calc}
+
+CAVAB FORMATI (Markdown, Azərbaycan dilində):
+- Əvvəl "Mətndən oxunan məlumatlar" başlığı altında çıxardığın cədvəli göstər ki, istifadəçi yoxlaya bilsin.
+- Sonra mətndəki hər tapşırığa eyni nömrə və sıra ilə ayrıca "## N. ..." başlığı ver. Ədədi nəticələri cədvəllə göstər.
+- Tövsiyələr konkret olsun: kimə/haraya, nə etməli, niyə (rəqəmlə əsaslandır).
+- Sonda "## Yekun qərar" bölməsində qısa və əsaslandırılmış nəticə yaz.
+- Alət çağırışları haqqında danışma, yalnız nəticəni yaz.
+${hasImages ? "\nƏlavə olunan şəkil(lər)də tapşırığın mətni və ya cədvəl var. Onları diqqətlə oxu və mətnlə birlikdə istifadə et.\n" : ""}
+TAPŞIRIĞIN MƏTNİ:
+"""
+${task}
+"""`;
+  }
+
+  // ---------- Cavabın göstərilməsi ----------
+  function renderMarkdown(md) {
+    const out = $("out");
+    if (window.marked && window.DOMPurify) {
+      const html = DOMPurify.sanitize(marked.parse(md, { gfm: true, breaks: false }));
+      const div = document.createElement("div");
+      div.className = "answer";
+      div.innerHTML = html;
+      div.querySelectorAll("table").forEach((t) => { const w = document.createElement("div"); w.className = "tw"; t.replaceWith(w); w.append(t); });
+      out.replaceChildren(div);
+    } else {
+      const pre = document.createElement("div");
+      pre.className = "answer";
+      pre.style.whiteSpace = "pre-wrap";
+      pre.textContent = md;
+      out.replaceChildren(pre);
+    }
+  }
+  let rafPending = null;
+  function scheduleRender(md) {
+    lastAnswer = md;
+    if (rafPending) return;
+    rafPending = requestAnimationFrame(() => { rafPending = null; renderMarkdown(lastAnswer); });
+  }
+
+  function step(text, cls) {
+    const d = document.createElement("div");
+    d.textContent = text;
+    if (cls) d.className = cls;
+    $("steps").append(d);
+  }
+
+  const ERRORS = {
+    not_granted: "Sİ-yə icazə verilmədi. Səhifəni yenidən açıb icazə pəncərəsində razılıq verin.",
+    sampling_disabled: "Bu hesab üçün Claude əlçatan deyil.",
+    rate_limited: "Hazırda çox sorğu var və ya istifadə limitinə çatılıb. Bir az sonra yenidən cəhd edin.",
+    session_expired: "Sessiyanın vaxtı bitib. claude.ai-a yenidən daxil olun.",
+    prompt_too_large: "Mətn çox uzundur. Daha qısa hissə yapışdırın.",
+    image_rejected: "Şəkil qəbul olunmadı. JPEG və ya PNG formatında başqa şəkil seçin.",
+    images_unavailable: "Bu görünüşdə şəkil göndərmək mümkün deyil. Mətni yapışdırın.",
+    refused: "Sİ bu mətni emal etmədi. Tapşırığı başqa cür ifadə edin.",
+    empty_completion: "Sİ cavab yaratmadı. Tapşırığı qısaldıb yenidən cəhd edin.",
+    upstream_error: "Bağlantı kəsildi. Yenidən «Təhlil et» düyməsini basın.",
+  };
+
+  async function run() {
+    const task = $("task").value.trim();
+    const files = canImages ? Array.from($("img").files || []) : [];
+    if (!task && !files.length) { $("steps").replaceChildren(); step("Əvvəlcə tapşırığın mətnini yapışdırın.", "err"); return; }
+    if (!sample) { $("unavail").hidden = false; return; }
+
+    calcVars = {}; calcCount = 0; lastAnswer = "";
+    $("steps").replaceChildren();
+    $("copy").hidden = true; $("fix").hidden = true;
+    const thinking = document.createElement("div");
+    thinking.className = "empty pulse";
+    thinking.textContent = "Sİ mətni oxuyur və hesablayır…";
+    $("out").replaceChildren(thinking);
+    step(`Bilik bazası: ${taught.length} öyrədilmiş qayda + daxili qaydalar`);
+
+    ctl = new AbortController();
+    $("run").disabled = true; $("stop").hidden = false;
+    const opts = {
+      signal: ctl.signal,
+      modelTier: $("deep").checked ? "complex" : "default",
+      onText: ({ text }) => scheduleRender(text),
+    };
+    if (canTools) opts.tools = TOOLS; else opts.cache = false;
+    if (files.length) opts.images = files;
+
+    try {
+      const res = await sample(buildPrompt(task || "(mətn şəkildədir)", files.length > 0), opts);
+      lastAnswer = res.text;
+      renderMarkdown(res.text);
+      step(`Hazırdır${calcCount ? ` · ${calcCount} dəqiq hesablama` : ""}`);
+      if (res.truncated) step("Cavab uzunluq limitinə görə yarımçıq qaldı. Tapşırıqları iki hissəyə bölün.", "err");
+      $("copy").hidden = false; $("fix").hidden = false;
+    } catch (e) {
+      if (e && e.text) { lastAnswer = e.text; renderMarkdown(e.text); }
+      else if (e?.code !== "cancelled") $("out").replaceChildren();
+      if (e?.code === "cancelled") step("Dayandırıldı.");
+      else if (e?.code === "tools_unavailable") { canTools = false; step("Kalkulyator bu görünüşdə işləmir. Yenidən «Təhlil et» basın, Sİ addım-addım hesablayacaq.", "err"); }
+      else step(ERRORS[e?.code] || ERRORS.upstream_error, "err");
+      if (["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed"].includes(e?.code)) blocked = true;
+    } finally {
+      $("run").disabled = blocked;
+      $("stop").hidden = true;
+      ctl = null;
+    }
+  }
+
+  // ---------- Hadisələr ----------
+  document.querySelectorAll("[data-mode]").forEach((b) => b.addEventListener("click", () => {
+    mode = b.dataset.mode;
+    document.querySelectorAll("[data-mode]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+  }));
+  document.querySelectorAll("[data-example]").forEach((b) => b.addEventListener("click", () => {
+    $("task").value = EXAMPLES[b.dataset.example];
+    store.set("tehlil-si-qaralama", $("task").value);
+    const target = document.querySelector(`[data-mode="${b.dataset.example}"]`);
+    target?.click();
+  }));
+  $("task").addEventListener("input", () => store.set("tehlil-si-qaralama", $("task").value));
+  $("clear").onclick = () => { $("task").value = ""; store.set("tehlil-si-qaralama", ""); $("task").focus(); };
+  $("run").onclick = run;
+  $("stop").onclick = () => ctl?.abort();
+  $("teachBtn").onclick = addRule;
+  $("fix").onclick = () => { $("teachText").focus(); $("teach").scrollIntoView({ behavior: "smooth", block: "center" }); };
+  $("img").addEventListener("change", () => {
+    const n = $("img").files?.length || 0;
+    $("imgLabel").textContent = n ? `${n} şəkil seçildi` : "Tapşırığın şəklini əlavə et";
+  });
+  $("copy").onclick = async () => {
+    try { await navigator.clipboard.writeText(lastAnswer); $("copy").textContent = "Kopyalandı"; }
+    catch {
+      const sel = window.getSelection(); const r = document.createRange();
+      r.selectNodeContents($("out")); sel.removeAllRanges(); sel.addRange(r);
+      $("copy").textContent = "Seçildi, Ctrl+C basın";
+    }
+    setTimeout(() => { $("copy").textContent = "Kopyala"; }, 2000);
+  };
+
+  // ---------- Başlanğıc ----------
+  renderBuiltin();
+  const draft = store.get("tehlil-si-qaralama");
+  $("task").value = draft && draft.trim() ? draft : EXAMPLES.telebe;
+  loadLocalRules();
+
+  const use = window.claude?.use?.bind(window.claude);
+  if (!use) {
+    $("unavail").hidden = false;
+  } else {
+    use("sample").then(async (s) => {
+      sample = s;
+      if (!s) { $("unavail").hidden = false; return; }
+      const lim = await s.limits().catch(() => null);
+      canTools = !!lim?.tools;
+      canImages = !!lim?.images;
+      if (canImages) {
+        $("img").accept = lim.images.mediaTypes.join(",");
+        $("imgWrap").hidden = false;
+      }
+    });
+    use("db").then((d) => {
+      if (!d) return;
+      db = d;
+      db.collection("qaydalar").orderBy("vaxt", "asc").onSnapshot(
+        (snap) => { taught = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })); renderTaught(); },
+        () => { db = null; loadLocalRules(); },
+      );
+    });
+  }
+})();
+</script>
